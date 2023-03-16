@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 public class Main {
     /**
@@ -38,7 +39,7 @@ public class Main {
         TYPE
     }
 
-    static String content = readFile(new File("src/com/owlbeatsmusic/test"));
+    static String content = readFile(new File("src/com/owlbeatsmusic/test")) + " ";
     static ArrayList<Object[]> variables = new ArrayList<>(); // Object{class, name, value}
 
     enum ExpressionToken {
@@ -200,85 +201,102 @@ public class Main {
     }
 
     public static void tokenize() {
-        Object[] tokenizedContent = new Object[]{}; // {Token, String}
+        ArrayList<Object[]> tokenizedContent = new ArrayList<>(); // {Token, String}
         char[] chars = content.toCharArray();
-        int index = 0;
+        int index = -1;
         while (index < chars.length) {
-
-
-            // OPERATOR
-            if (chars[index] == '=' & chars[index+1] == '=' ) {
-                tok
-            }
-            else if (chars[index] == '=') {
-
-            }
-            else if (chars[index] == '+' & chars[index+1] == '=') {
-
-            }
-            else if (chars[index] == '-' & chars[index+1] == '=') {
-
-            }
-            else if (chars[index] == '*' & chars[index+1] == '=') {
-
-            }
-            else if (chars[index] == '/' & chars[index+1] == '=') {
-
-            }
-
-
-            // EXPRESSION
-
-
-            // ENDLINE
-            else if (chars[index] == ';') {
-
-            }
-
-
-            // KEYWORD
-            else if (chars[index] == 'i' & chars[index+1] == 'f') {
-
-            }
-            else if (chars[index] == 'e' & chars[index+1] == 'l' & chars[index+2] == 's' & chars[index+3] == 'e') {
-
-            }
-            else if (chars[index] == 'w' & chars[index+1] == 'h' & chars[index+2] == 'i' & chars[index+3] == 'l' & chars[index+4] == 'e') {
-
-            }
-            else if (chars[index] == 'f' & chars[index+1] == 'u' & chars[index+2] == 'n' & chars[index+3] == 'c') {
-
-            }
-
-
-            // SEPARATOR
-            else if (chars[index] == '{') {
-
-            }
-            else if (chars[index] == '}') {
-
-            }
-
-
-            // TYPE
-            else if (chars[index] == 'i' & chars[index+1] == 'n' & chars[index+2] == 't') {
-
-            }
-            else if (chars[index] == 's' & chars[index+1] == 't' & chars[index+2] == 'r' & chars[index+3] == 'i' & chars[index+4] == 'n' & chars[index+5] == 'g') {
-
-            }
-            else if (chars[index] == 's' & chars[index+1] == 'e' & chars[index+2] == 't') {
-
-            }
-
-
-            // IDENTIFIER
-            else if (Character.isAlphabetic(chars[index])) {
-                // TODO : Detect whole string
-            }
-
             index++;
+            try {
+                // SET_OPERATOR
+                if (chars[index] == '=' & chars[index + 1] == '=') {
+                    tokenizedContent.add(new Object[]{Token.SET_OPERATOR, "=="});
+                    index += 1;
+                } else if (chars[index] == '=') {
+                    tokenizedContent.add(new Object[]{Token.SET_OPERATOR, "="});
+                } else if (chars[index] == '+' & chars[index + 1] == '=') {
+                    tokenizedContent.add(new Object[]{Token.SET_OPERATOR, "+="});
+                    index += 1;
+                } else if (chars[index] == '-' & chars[index + 1] == '=') {
+                    tokenizedContent.add(new Object[]{Token.SET_OPERATOR, "-="});
+                    index += 1;
+                } else if (chars[index] == '*' & chars[index + 1] == '=') {
+                    tokenizedContent.add(new Object[]{Token.SET_OPERATOR, "*="});
+                    index += 1;
+                } else if (chars[index] == '/' & chars[index + 1] == '=') {
+                    tokenizedContent.add(new Object[]{Token.SET_OPERATOR, "/="});
+                    index += 1;
+                } else if (chars[index] == '-' & chars[index + 1] == '>') {
+                    tokenizedContent.add(new Object[]{Token.SET_OPERATOR, "->"});
+                    index += 1;
+                } else if (chars[index] == '<' & chars[index + 1] == '-') {
+                    tokenizedContent.add(new Object[]{Token.SET_OPERATOR, "<-"});
+                    index += 1;
+                }
+
+
+                // EXPRESSION
+
+
+                // ENDLINE
+                else if (chars[index] == ';') {
+                    tokenizedContent.add(new Object[]{Token.ENDLINE, ";"});
+                }
+
+
+                // KEYWORD
+                else if (chars[index] == 'i' & chars[index + 1] == 'f') {
+                    tokenizedContent.add(new Object[]{Token.KEYWORD, "if"});
+                    index += 1;
+                } else if (chars[index] == 'e' & chars[index + 1] == 'l' & chars[index + 2] == 's' & chars[index + 3] == 'e') {
+                    tokenizedContent.add(new Object[]{Token.KEYWORD, "else"});
+                    index += 2;
+                } else if (chars[index] == 'w' & chars[index + 1] == 'h' & chars[index + 2] == 'i' & chars[index + 3] == 'l' & chars[index + 4] == 'e') {
+                    tokenizedContent.add(new Object[]{Token.KEYWORD, "while"});
+                    index += 3;
+                } else if (chars[index] == 'f' & chars[index + 1] == 'u' & chars[index + 2] == 'n' & chars[index + 3] == 'c') {
+                    tokenizedContent.add(new Object[]{Token.KEYWORD, "func"});
+                    index += 2;
+                }
+
+
+                // SEPARATOR
+                else if (chars[index] == '{') {
+                    tokenizedContent.add(new Object[]{Token.SEPARATOR, "{"});
+                } else if (chars[index] == '}') {
+                    tokenizedContent.add(new Object[]{Token.SEPARATOR, "}"});
+                }
+
+
+                // TYPE
+                else if (chars[index] == 'i' & chars[index + 1] == 'n' & chars[index + 2] == 't') {
+                    tokenizedContent.add(new Object[]{Token.TYPE, "int"});
+                    index += 2;
+                } else if (chars[index] == 's' & chars[index + 1] == 't' & chars[index + 2] == 'r' & chars[index + 3] == 'i' & chars[index + 4] == 'n' & chars[index + 5] == 'g') {
+                    tokenizedContent.add(new Object[]{Token.TYPE, "string"});
+                    index += 4;
+                } else if (chars[index] == 's' & chars[index + 1] == 'e' & chars[index + 2] == 't') {
+                    tokenizedContent.add(new Object[]{Token.TYPE, "set"});
+                    index += 2;
+                }
+
+
+                // IDENTIFIER
+                else if (Character.isAlphabetic(chars[index])) {
+                    // check until hits " ,.;+/()[]{}"
+                    StringBuilder identifier = new StringBuilder();
+                    int l = index;
+                    while (l < chars.length) {
+                        if (" ,.;+/()[]{}".contains(String.valueOf(chars[l]))) break;
+                        identifier.append(chars[l]);
+                        l++;
+                    }
+                    index += identifier.length()-1;
+                    tokenizedContent.add(new Object[]{Token.IDENTIFIER, identifier.toString()});
+                }
+
+            } catch (ArrayIndexOutOfBoundsException ignored) {}
         }
+        System.out.println(Arrays.deepToString(tokenizedContent.toArray()));
 
     }
 
