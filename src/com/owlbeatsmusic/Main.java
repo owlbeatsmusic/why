@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 public class Main {
+
     /**
      * From :  https://www.github.com/owlbeatsmusic/olib
      * Original name : "fileToString".
@@ -29,17 +30,24 @@ public class Main {
     }
 
     enum Token {
+        NULL,
         IDENTIFIER,
-        SET_OPERATOR,
+        EQUALS_OPERATOR,
+        BOOLEAN_OPERATOR,
         EXPRESSION,
         ENDLINE,
         KEYWORD,
         CODE,
-        SEPARATOR,
+        OPEN_BRACKET,
+        CLOSE_BRACKET,
+        OPEN_CURLY_BRACKET,
+        CLOSE_CURLY_BRACKET,
+        OPEN_PARENTHESIS,
+        CLOSE_PARENTHESIS,
         TYPE
     }
 
-    static String content = readFile(new File("src/com/owlbeatsmusic/test")) + " ";
+
     static ArrayList<Object[]> variables = new ArrayList<>(); // Object{class, name, value}
 
     enum ExpressionToken {
@@ -199,104 +207,125 @@ public class Main {
 
         return output;
     }
-
+    static String content = readFile(new File("src/com/owlbeatsmusic/test")) + " ";
     public static void tokenize() {
-        ArrayList<Object[]> tokenizedContent = new ArrayList<>(); // {Token, String}
+        ArrayList<Object[]> tokens = new ArrayList<>(); // {Token, String}
+        for (int i = 0; i < 5; i++) { tokens.add(new Object[]{Token.NULL, null}); }
         char[] chars = content.toCharArray();
+        StringBuilder tokenizedWithoutExpression = new StringBuilder();
         int index = -1;
         while (index < chars.length) {
             index++;
             try {
-                // SET_OPERATOR
-                if (chars[index] == '=' & chars[index + 1] == '=') {
-                    tokenizedContent.add(new Object[]{Token.SET_OPERATOR, "=="});
-                    index += 1;
-                } else if (chars[index] == '=') {
-                    tokenizedContent.add(new Object[]{Token.SET_OPERATOR, "="});
-                } else if (chars[index] == '+' & chars[index + 1] == '=') {
-                    tokenizedContent.add(new Object[]{Token.SET_OPERATOR, "+="});
-                    index += 1;
-                } else if (chars[index] == '-' & chars[index + 1] == '=') {
-                    tokenizedContent.add(new Object[]{Token.SET_OPERATOR, "-="});
-                    index += 1;
-                } else if (chars[index] == '*' & chars[index + 1] == '=') {
-                    tokenizedContent.add(new Object[]{Token.SET_OPERATOR, "*="});
-                    index += 1;
-                } else if (chars[index] == '/' & chars[index + 1] == '=') {
-                    tokenizedContent.add(new Object[]{Token.SET_OPERATOR, "/="});
-                    index += 1;
-                } else if (chars[index] == '-' & chars[index + 1] == '>') {
-                    tokenizedContent.add(new Object[]{Token.SET_OPERATOR, "->"});
-                    index += 1;
-                } else if (chars[index] == '<' & chars[index + 1] == '-') {
-                    tokenizedContent.add(new Object[]{Token.SET_OPERATOR, "<-"});
+                // OPERATORS
+                if ("+-*/".contains(String.valueOf(chars[index])) & "=-<>".contains(String.valueOf(chars[index+1]))) {
+                    tokens.add(new Object[]{Token.EQUALS_OPERATOR, Character.toString(chars[index])+ chars[index + 1]});
+
                     index += 1;
                 }
-
-
-                // EXPRESSION
-
-
-                // ENDLINE
-                else if (chars[index] == ';') {
-                    tokenizedContent.add(new Object[]{Token.ENDLINE, ";"});
+                else if ("<>=".contains(String.valueOf(chars[index])) & "=".contains(String.valueOf(chars[index+1]))) {
+                    tokens.add(new Object[]{Token.BOOLEAN_OPERATOR, Character.toString(chars[index])+ chars[index + 1]});
+                    index += 1;
+                }
+                else if (chars[index] == '=') {
+                    tokens.add(new Object[]{Token.EQUALS_OPERATOR, "="});
+                }
+                else if (chars[index] == '<' & chars[index+1] == '-') {
+                    tokens.add(new Object[]{Token.EQUALS_OPERATOR, Character.toString(chars[index])+ chars[index + 1]});
+                    index += 1;
                 }
 
 
                 // KEYWORD
-                else if (chars[index] == 'i' & chars[index + 1] == 'f') {
-                    tokenizedContent.add(new Object[]{Token.KEYWORD, "if"});
-                    index += 1;
-                } else if (chars[index] == 'e' & chars[index + 1] == 'l' & chars[index + 2] == 's' & chars[index + 3] == 'e') {
-                    tokenizedContent.add(new Object[]{Token.KEYWORD, "else"});
-                    index += 2;
-                } else if (chars[index] == 'w' & chars[index + 1] == 'h' & chars[index + 2] == 'i' & chars[index + 3] == 'l' & chars[index + 4] == 'e') {
-                    tokenizedContent.add(new Object[]{Token.KEYWORD, "while"});
-                    index += 3;
-                } else if (chars[index] == 'f' & chars[index + 1] == 'u' & chars[index + 2] == 'n' & chars[index + 3] == 'c') {
-                    tokenizedContent.add(new Object[]{Token.KEYWORD, "func"});
-                    index += 2;
-                }
-
-
-                // SEPARATOR
-                else if (chars[index] == '{') {
-                    tokenizedContent.add(new Object[]{Token.SEPARATOR, "{"});
-                } else if (chars[index] == '}') {
-                    tokenizedContent.add(new Object[]{Token.SEPARATOR, "}"});
+                else if ((Character.toString(chars[index]) + chars[index + 1]).equals("if") |
+                         (Character.toString(chars[index]) + chars[index + 1] + chars[index + 2] + chars[index + 3]).equals("else") |
+                         (Character.toString(chars[index]) + chars[index + 1] + chars[index + 2] + chars[index + 3] + chars[index + 4]).equals("while") |
+                         (Character.toString(chars[index]) + chars[index + 1] + chars[index + 2] + chars[index + 3]).equals("func") |
+                         (Character.toString(chars[index]) + chars[index + 1] + chars[index + 2]).equals("int") ) {
+                    StringBuilder keyword = new StringBuilder();
+                    int l = index;
+                    while (l < chars.length) {
+                        if (" (".contains(Character.toString(chars[l]))) break;
+                        keyword.append(chars[l]);
+                        l++;
+                    }
+                    tokens.add(new Object[]{Token.KEYWORD, keyword});
+                    index += keyword.length();
                 }
 
 
                 // TYPE
-                else if (chars[index] == 'i' & chars[index + 1] == 'n' & chars[index + 2] == 't') {
-                    tokenizedContent.add(new Object[]{Token.TYPE, "int"});
+                else if (chars[index] == 'i' & chars[index + 1] == 'n' & chars[index + 2] == 't' & chars[index + 3] == ' ') {
+                    tokens.add(new Object[]{Token.TYPE, "int"});
+                    index += 3;
+                } else if (chars[index] == 's' & chars[index + 1] == 't' & chars[index + 2] == 'r' & chars[index + 3] == 'i' & chars[index + 4] == 'n' & chars[index + 5] == 'g' & chars[index + 6] == ' ') {
+                    tokens.add(new Object[]{Token.TYPE, "string"});
+                    index += 5;
+                } else if (chars[index] == 's' & chars[index + 1] == 'e' & chars[index + 2] == 't' & chars[index + 3] == ' ') {
+                    tokens.add(new Object[]{Token.TYPE, "set"});
+                    index += 3;
+                }
+                /*
+                else if (chars[index] == 'i' & chars[index + 1] == 'f') {
+                    tokens.add(new Object[]{Token.KEYWORD, "if"});
+                    index += 1;
+                } else if (chars[index] == 'e' & chars[index + 1] == 'l' & chars[index + 2] == 's' & chars[index + 3] == 'e') {
+                    tokens.add(new Object[]{Token.KEYWORD, "else"});
                     index += 2;
-                } else if (chars[index] == 's' & chars[index + 1] == 't' & chars[index + 2] == 'r' & chars[index + 3] == 'i' & chars[index + 4] == 'n' & chars[index + 5] == 'g') {
-                    tokenizedContent.add(new Object[]{Token.TYPE, "string"});
-                    index += 4;
-                } else if (chars[index] == 's' & chars[index + 1] == 'e' & chars[index + 2] == 't') {
-                    tokenizedContent.add(new Object[]{Token.TYPE, "set"});
+                } else if (chars[index] == 'w' & chars[index + 1] == 'h' & chars[index + 2] == 'i' & chars[index + 3] == 'l' & chars[index + 4] == 'e') {
+                    tokens.add(new Object[]{Token.KEYWORD, "while"});
+                    index += 3;
+                } else if (chars[index] == 'f' & chars[index + 1] == 'u' & chars[index + 2] == 'n' & chars[index + 3] == 'c') {
+                    tokens.add(new Object[]{Token.KEYWORD, "func"});
                     index += 2;
                 }
 
+                 */
 
-                // IDENTIFIER
-                else if (Character.isAlphabetic(chars[index])) {
-                    // check until hits " ,.;+/()[]{}"
+
+                // BRACKETS
+                else if (chars[index] == '{') tokens.add(new Object[]{Token.OPEN_CURLY_BRACKET,  "{"});
+                else if (chars[index] == '}') tokens.add(new Object[]{Token.CLOSE_CURLY_BRACKET, "}"});
+                else if (chars[index] == '[') tokens.add(new Object[]{Token.OPEN_BRACKET,        "["});
+                else if (chars[index] == ']') tokens.add(new Object[]{Token.CLOSE_BRACKET,       "]"});
+                else if (chars[index] == '(') tokens.add(new Object[]{Token.OPEN_PARENTHESIS,    "("});
+                else if (chars[index] == ')') tokens.add(new Object[]{Token.CLOSE_PARENTHESIS,   ")"});
+
+
+                // ENDLINE
+                else if (chars[index] == ';') tokens.add(new Object[]{Token.ENDLINE, ";"});
+
+
+                // EXPRESSION
+                boolean isExpression = false;
+                try {
+                    if ((tokens.get(tokens.size() - 3)[0] == Token.TYPE & tokens.get(tokens.size() - 2)[0] == Token.IDENTIFIER & tokens.get(tokens.size() - 1)[0] == Token.EQUALS_OPERATOR) |
+                        (tokens.get(tokens.size() - 2)[0] == Token.IDENTIFIER & tokens.get(tokens.size() - 1)[0] == Token.EQUALS_OPERATOR) |
+                        (tokens.get(tokens.size() - 2)[0] == Token.KEYWORD & tokens.get(tokens.size() - 1)[0] == Token.OPEN_PARENTHESIS) |
+                        (tokens.get(tokens.size() - 4)[0] == Token.KEYWORD & tokens.get(tokens.size() - 3)[0] == Token.OPEN_PARENTHESIS & tokens.get(tokens.size() - 2)[0] == Token.EXPRESSION & tokens.get(tokens.size() - 1)[0] == Token.BOOLEAN_OPERATOR)) {
+                        System.out.println("expreession");
+                        isExpression = true;
+                    }
+                } catch (IndexOutOfBoundsException ignored) {
+                    System.out.println(ignored);
+                }
+
+                if (Character.isAlphabetic(chars[index]) & !isExpression) {
                     StringBuilder identifier = new StringBuilder();
                     int l = index;
-                    while (l < chars.length) {
+                    while (l <= chars.length) {
                         if (" ,.;+/()[]{}".contains(String.valueOf(chars[l]))) break;
                         identifier.append(chars[l]);
                         l++;
                     }
-                    index += identifier.length()-1;
-                    tokenizedContent.add(new Object[]{Token.IDENTIFIER, identifier.toString()});
+                    index += identifier.length();
+                    tokens.add(new Object[]{Token.IDENTIFIER, identifier.toString()});
                 }
 
             } catch (ArrayIndexOutOfBoundsException ignored) {}
         }
-        System.out.println(Arrays.deepToString(tokenizedContent.toArray()));
+
+        System.out.println(Arrays.deepToString(tokens.toArray()));
 
     }
 
