@@ -210,17 +210,20 @@ public class Main {
     static String content = readFile(new File("src/com/owlbeatsmusic/test")) + " ";
     public static void tokenize() {
         ArrayList<Object[]> tokens = new ArrayList<>(); // {Token, String}
-        for (int i = 0; i < 5; i++) { tokens.add(new Object[]{Token.NULL, null}); }
+        for (int i = 0; i < 2; i++) { tokens.add(new Object[]{Token.NULL, null}); }
         char[] chars = content.toCharArray();
-        StringBuilder tokenizedWithoutExpression = new StringBuilder();
         int index = -1;
         while (index < chars.length) {
             index++;
             try {
-                // OPERATORS
-                if ("+-*/".contains(String.valueOf(chars[index])) & "=-<>".contains(String.valueOf(chars[index+1]))) {
-                    tokens.add(new Object[]{Token.EQUALS_OPERATOR, Character.toString(chars[index])+ chars[index + 1]});
 
+                // ENDLINE
+                if (chars[index] == ';') tokens.add(new Object[]{Token.ENDLINE, ";"});
+
+
+                // OPERATORS
+                else if ("+-*/".contains(String.valueOf(chars[index])) & "=-<>".contains(String.valueOf(chars[index+1]))) {
+                    tokens.add(new Object[]{Token.EQUALS_OPERATOR, Character.toString(chars[index])+ chars[index + 1]});
                     index += 1;
                 }
                 else if ("<>=".contains(String.valueOf(chars[index])) & "=".contains(String.valueOf(chars[index+1]))) {
@@ -237,50 +240,23 @@ public class Main {
 
 
                 // KEYWORD
-                else if ((Character.toString(chars[index]) + chars[index + 1]).equals("if") |
-                         (Character.toString(chars[index]) + chars[index + 1] + chars[index + 2] + chars[index + 3]).equals("else") |
-                         (Character.toString(chars[index]) + chars[index + 1] + chars[index + 2] + chars[index + 3] + chars[index + 4]).equals("while") |
-                         (Character.toString(chars[index]) + chars[index + 1] + chars[index + 2] + chars[index + 3]).equals("func") |
-                         (Character.toString(chars[index]) + chars[index + 1] + chars[index + 2]).equals("int") ) {
-                    StringBuilder keyword = new StringBuilder();
+                else if ((Character.toString(chars[index]) + chars[index + 1]).matches("if") |
+                         (Character.toString(chars[index]) + chars[index + 1] + chars[index + 2]).matches("int|set") |
+                         (Character.toString(chars[index]) + chars[index + 1] + chars[index + 2] + chars[index + 3]).matches("else|func") |
+                         (Character.toString(chars[index]) + chars[index + 1] + chars[index + 2] + chars[index + 3] + chars[index + 4]).matches("while") |
+                         (Character.toString(chars[index]) + chars[index + 1] + chars[index + 2] + chars[index + 3] + chars[index + 4] + chars[index + 5]).matches("string")) {
+                    StringBuilder word = new StringBuilder();
                     int l = index;
                     while (l < chars.length) {
                         if (" (".contains(Character.toString(chars[l]))) break;
-                        keyword.append(chars[l]);
+                        word.append(chars[l]);
                         l++;
                     }
-                    tokens.add(new Object[]{Token.KEYWORD, keyword});
-                    index += keyword.length();
+                    if ("if, else, while, func".contains(word)) tokens.add(new Object[]{Token.KEYWORD, word});
+                    if ("int, string, set".contains(word))      tokens.add(new Object[]{Token.TYPE, word});
+                    index += word.length();
                 }
 
-
-                // TYPE
-                else if (chars[index] == 'i' & chars[index + 1] == 'n' & chars[index + 2] == 't' & chars[index + 3] == ' ') {
-                    tokens.add(new Object[]{Token.TYPE, "int"});
-                    index += 3;
-                } else if (chars[index] == 's' & chars[index + 1] == 't' & chars[index + 2] == 'r' & chars[index + 3] == 'i' & chars[index + 4] == 'n' & chars[index + 5] == 'g' & chars[index + 6] == ' ') {
-                    tokens.add(new Object[]{Token.TYPE, "string"});
-                    index += 5;
-                } else if (chars[index] == 's' & chars[index + 1] == 'e' & chars[index + 2] == 't' & chars[index + 3] == ' ') {
-                    tokens.add(new Object[]{Token.TYPE, "set"});
-                    index += 3;
-                }
-                /*
-                else if (chars[index] == 'i' & chars[index + 1] == 'f') {
-                    tokens.add(new Object[]{Token.KEYWORD, "if"});
-                    index += 1;
-                } else if (chars[index] == 'e' & chars[index + 1] == 'l' & chars[index + 2] == 's' & chars[index + 3] == 'e') {
-                    tokens.add(new Object[]{Token.KEYWORD, "else"});
-                    index += 2;
-                } else if (chars[index] == 'w' & chars[index + 1] == 'h' & chars[index + 2] == 'i' & chars[index + 3] == 'l' & chars[index + 4] == 'e') {
-                    tokens.add(new Object[]{Token.KEYWORD, "while"});
-                    index += 3;
-                } else if (chars[index] == 'f' & chars[index + 1] == 'u' & chars[index + 2] == 'n' & chars[index + 3] == 'c') {
-                    tokens.add(new Object[]{Token.KEYWORD, "func"});
-                    index += 2;
-                }
-
-                 */
 
 
                 // BRACKETS
@@ -292,24 +268,45 @@ public class Main {
                 else if (chars[index] == ')') tokens.add(new Object[]{Token.CLOSE_PARENTHESIS,   ")"});
 
 
-                // ENDLINE
-                else if (chars[index] == ';') tokens.add(new Object[]{Token.ENDLINE, ";"});
-
-
-                // EXPRESSION
+                // EXPRESSION - wedoinabitofparsin
                 boolean isExpression = false;
                 try {
-                    if ((tokens.get(tokens.size() - 3)[0] == Token.TYPE & tokens.get(tokens.size() - 2)[0] == Token.IDENTIFIER & tokens.get(tokens.size() - 1)[0] == Token.EQUALS_OPERATOR) |
+                    /*
+                        Check if the current token sequence is expecting an expression,
+                        then add all characters to the expression waiting until it hits a ';'
+                        or when the number of closed parenthesis is more than the number of
+                        open ones. (if it's the parenthesis way, then remove the last parenthesis)
+                     */
+                    if ((tokens.get(tokens.size() - 3)[0] == Token.TYPE & tokens.get(tokens.size() - 2)[0]       == Token.IDENTIFIER & tokens.get(tokens.size() - 1)[0]       == Token.EQUALS_OPERATOR) |
                         (tokens.get(tokens.size() - 2)[0] == Token.IDENTIFIER & tokens.get(tokens.size() - 1)[0] == Token.EQUALS_OPERATOR) |
-                        (tokens.get(tokens.size() - 2)[0] == Token.KEYWORD & tokens.get(tokens.size() - 1)[0] == Token.OPEN_PARENTHESIS) |
-                        (tokens.get(tokens.size() - 4)[0] == Token.KEYWORD & tokens.get(tokens.size() - 3)[0] == Token.OPEN_PARENTHESIS & tokens.get(tokens.size() - 2)[0] == Token.EXPRESSION & tokens.get(tokens.size() - 1)[0] == Token.BOOLEAN_OPERATOR)) {
-                        System.out.println("expreession");
-                        isExpression = true;
-                    }
-                } catch (IndexOutOfBoundsException ignored) {
-                    System.out.println(ignored);
-                }
+                        (tokens.get(tokens.size() - 2)[0] == Token.KEYWORD & tokens.get(tokens.size() - 1)[0]    == Token.OPEN_PARENTHESIS) |
+                        (tokens.get(tokens.size() - 4)[0] == Token.KEYWORD & tokens.get(tokens.size() - 3)[0]    == Token.OPEN_PARENTHESIS & tokens.get(tokens.size() - 2)[0] == Token.EXPRESSION & tokens.get(tokens.size() - 1)[0] == Token.BOOLEAN_OPERATOR)) {
+                        index++;
+                        StringBuilder expression = new StringBuilder();
+                        int openParenthesis  = 0;
+                        int closeParenthesis = 0;
+                        int l = index;
+                        while (l < chars.length) {
+                            if (closeParenthesis > openParenthesis | ";=<>".contains(Character.toString(chars[l]))) break;
+                            if (chars[l] == '(') openParenthesis++;
+                            if (chars[l] == ')') closeParenthesis++;
+                            expression.append(chars[l]);
+                            l++;
+                        }
+                        if (closeParenthesis > openParenthesis) {
+                            expression = new StringBuilder(expression.substring(0, expression.length() - 1));
+                            index += expression.length()-1;
+                        }
+                        else {
+                            index += expression.length()-1;
+                        }
+                        tokens.add(new Object[]{Token.EXPRESSION, expression});
 
+                    }
+                } catch (IndexOutOfBoundsException ignored) {}
+
+
+                // IDENTIFIER
                 if (Character.isAlphabetic(chars[index]) & !isExpression) {
                     StringBuilder identifier = new StringBuilder();
                     int l = index;
