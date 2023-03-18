@@ -35,7 +35,7 @@ public class Main {
         EQUALS_OPERATOR,
         BOOLEAN_OPERATOR,
         EXPRESSION,
-        ENDLINE,
+        END_LINE,
         KEYWORD,
         CODE,
         OPEN_BRACKET,
@@ -47,46 +47,30 @@ public class Main {
         TYPE
     }
 
-
-    static ArrayList<Object[]> variables = new ArrayList<>(); // Object{class, name, value}
-
     enum ExpressionToken {
         IDENTIFIER,
         SEPARATOR,
-        ExpressionOperator,
-        LITERAL
-    }
-    enum ExpressionOperator {
+        LITERAL,
+        OPERATOR,
         PLUS,
         MINUS,
         TIMES,
         DIVIDED
     }
-    public static int solveIntExpression(char[] inputEquation) {
 
-        // count all characters that aren't space
-        int length = 0;
-        for (int i = 0; i < inputEquation.length; i++) {
-            if (inputEquation[i] != 32) length++;
-        }
+    static ArrayList<Object[]> variables = new ArrayList<>(); // Object{class, name, value}
+    static String content = readFile(new File("src/com/owlbeatsmusic/test")).replaceAll(System.lineSeparator(), "") + " ";
 
+    public static int solveIntEquation(String inputEquation) {
 
-        // create the new equation without spaces
-        char[] equation =  new char[length];
-        int index = 0;
-        for (int i = 0; i < inputEquation.length; i++) {
-            if (inputEquation[i] != 32) {
-                equation[index] = inputEquation[i];
-                index++;
-            }
-        }
-        // create steps before calculation
+        char[] equation = inputEquation.strip().toCharArray();
+
+        // tokenize equation
         ArrayList<Object[]> steps = new ArrayList<>();
         for (int i = 0; i < equation.length; i++) {
 
-            // Variable (adds the value of the variable)
+            // IDENTIFIER
             if (Character.isAlphabetic(equation[i])) {
-                int value = 0;
                 StringBuilder variable = new StringBuilder(String.valueOf(equation[i]));
 
                 int l = 1;
@@ -97,6 +81,7 @@ public class Main {
                 }
                 i+=l-1;
 
+                int value = 0;
                 for (Object[] var : variables) {
                     if (String.valueOf(var[1]).equals(variable.toString())) {
                         value = (int) var[2];
@@ -105,50 +90,43 @@ public class Main {
                 steps.add(new Object[] {ExpressionToken.IDENTIFIER ,String.valueOf(value)});
             }
 
-            // Digit
+            // LITERAL
             else if (Character.isDigit(equation[i])) {
-                String value = "";
-                value += equation[i];
+                StringBuilder value = new StringBuilder();
+                value.append(equation[i]);
                 int l = 1;
                 try {
                     while (Character.isDigit(equation[i+l])) {
-                        value += equation[i+l];
+                        value.append(equation[i + l]);
                         l++;
                     }
                     i += l-1;
                 } catch (ArrayIndexOutOfBoundsException ignored) {}
-                steps.add(new Object[] {ExpressionToken.LITERAL , value});
+                steps.add(new Object[] {ExpressionToken.LITERAL , value.toString()});
             }
 
-            // Operation or Separator
+            // OPERATION or SEPARATOR
             else {
-                ExpressionToken token = ExpressionToken.ExpressionOperator;
+                ExpressionToken token = ExpressionToken.OPERATOR;
                 if ("()".contains(Character.toString(equation[i]))) token = ExpressionToken.SEPARATOR;
                 steps.add(new Object[] {token ,String.valueOf(equation[i])});
-
             }
-            // System.out.println(Arrays.deepToString(steps.toArray()));
         }
 
-        int output;
-        int value1 = 0;
-        ExpressionOperator operator = ExpressionOperator.PLUS;
-        int value2;
-        boolean nextValue = false;
 
         // replace parenthesis with value of expression inside with recursion
         ArrayList<Object[]> nonParenthesisSteps = new ArrayList<>();
         int i1 = 0;
         while (i1 < steps.size()) {
             if (steps.get(i1)[1].equals("(")) {
-                String expressionString = "";
+                StringBuilder expressionString = new StringBuilder();
                 int expressionLength = 0;
                 int j = i1 + 1;
                 int startParenthesisCounter = 0;
                 while (j < steps.size()) {
                     if ("(".contains(steps.get(j)[1].toString())) startParenthesisCounter++;
                     if (")".contains(steps.get(j)[1].toString())) {
-                        expressionString += steps.get(j)[1];
+                        expressionString.append(steps.get(j)[1]);
                         if (startParenthesisCounter == 0) {
                             expressionLength = j - i1;
                             j = steps.size();
@@ -156,7 +134,7 @@ public class Main {
                         startParenthesisCounter--;
                     }
                     else {
-                        expressionString += steps.get(j)[1];
+                        expressionString.append(steps.get(j)[1]);
                     }
                     j++;
                 }
@@ -166,7 +144,7 @@ public class Main {
                 for (int c = 0; c < expressionString.length(); c++) {
                     parenthesisExpression[c] = expressionString.charAt(c);
                 }
-                nonParenthesisSteps.add(new Object[]{ExpressionToken.LITERAL, solveIntExpression(parenthesisExpression)});
+                nonParenthesisSteps.add(new Object[]{ExpressionToken.LITERAL, solveIntEquation(String.valueOf(parenthesisExpression))});
             }
             else {
                 nonParenthesisSteps.add(steps.get(i1));
@@ -174,52 +152,60 @@ public class Main {
             i1++;
         }
 
+
         // arithmetic calculation with all values converted to digits without any parenthesis
+        int output = 0;
+        ExpressionToken operator = ExpressionToken.PLUS;
+        int value2;
+        boolean nextValue = false;
         for (int i = 0; i < nonParenthesisSteps.size(); i++) {
             if (nonParenthesisSteps.get(i)[0] == ExpressionToken.IDENTIFIER | nonParenthesisSteps.get(i)[0] == ExpressionToken.LITERAL ) {
                 if (!nextValue) {
-                    value1 = Integer.parseInt(nonParenthesisSteps.get(i)[1].toString());
+                    output = Integer.parseInt(nonParenthesisSteps.get(i)[1].toString());
                     nextValue = true;
                 }
                 else {
                     value2 = Integer.parseInt(nonParenthesisSteps.get(i)[1].toString());
                     switch (operator) {
-                        case PLUS -> value1 = value1 + value2;
-                        case MINUS -> value1 = value1 - value2;
-                        case TIMES -> value1 = value1 * value2;
-                        case DIVIDED -> value1 = value1 / value2;
+                        case PLUS -> output = output + value2;
+                        case MINUS -> output = output - value2;
+                        case TIMES -> output = output * value2;
+                        case DIVIDED -> output = output / value2;
                     }
                 }
             }
-            if (nonParenthesisSteps.get(i)[0] == ExpressionToken.SEPARATOR) {
-
-            }
-            if (nonParenthesisSteps.get(i)[0] == ExpressionToken.ExpressionOperator) {
+            if (nonParenthesisSteps.get(i)[0] == ExpressionToken.OPERATOR) {
                 switch (nonParenthesisSteps.get(i)[1].toString()) {
-                    case "+" -> operator = ExpressionOperator.PLUS;
-                    case "-" -> operator = ExpressionOperator.MINUS;
-                    case "*" -> operator = ExpressionOperator.TIMES;
-                    case "/" -> operator = ExpressionOperator.DIVIDED;
+                    case "+" -> operator = ExpressionToken.PLUS;
+                    case "-" -> operator = ExpressionToken.MINUS;
+                    case "*" -> operator = ExpressionToken.TIMES;
+                    case "/" -> operator = ExpressionToken.DIVIDED;
                 }
             }
         }
 
-        output = value1;
-
         return output;
     }
-    static String content = readFile(new File("src/com/owlbeatsmusic/test")) + " ";
-    public static void tokenize() {
+    public static void tokenize(String input) {
         ArrayList<Object[]> tokens = new ArrayList<>(); // {Token, String}
         for (int i = 0; i < 2; i++) { tokens.add(new Object[]{Token.NULL, null}); }
-        char[] chars = content.toCharArray();
+        char[] chars = input.toCharArray();
         int index = -1;
         while (index < chars.length) {
             index++;
             try {
 
                 // ENDLINE
-                if (chars[index] == ';') tokens.add(new Object[]{Token.ENDLINE, ";"});
+                if (chars[index] == ';') tokens.add(new Object[]{Token.END_LINE, ";"});
+
+
+                // BRACKETS
+                else if (chars[index] == '{') tokens.add(new Object[]{Token.OPEN_CURLY_BRACKET,  "{"});
+                else if (chars[index] == '}') tokens.add(new Object[]{Token.CLOSE_CURLY_BRACKET, "}"});
+                else if (chars[index] == '[') tokens.add(new Object[]{Token.OPEN_BRACKET,        "["});
+                else if (chars[index] == ']') tokens.add(new Object[]{Token.CLOSE_BRACKET,       "]"});
+                else if (chars[index] == '(') tokens.add(new Object[]{Token.OPEN_PARENTHESIS,    "("});
+                else if (chars[index] == ')') tokens.add(new Object[]{Token.CLOSE_PARENTHESIS,   ")"});
 
 
                 // OPERATORS
@@ -259,16 +245,6 @@ public class Main {
                 }
 
 
-
-                // BRACKETS
-                else if (chars[index] == '{') tokens.add(new Object[]{Token.OPEN_CURLY_BRACKET,  "{"});
-                else if (chars[index] == '}') tokens.add(new Object[]{Token.CLOSE_CURLY_BRACKET, "}"});
-                else if (chars[index] == '[') tokens.add(new Object[]{Token.OPEN_BRACKET,        "["});
-                else if (chars[index] == ']') tokens.add(new Object[]{Token.CLOSE_BRACKET,       "]"});
-                else if (chars[index] == '(') tokens.add(new Object[]{Token.OPEN_PARENTHESIS,    "("});
-                else if (chars[index] == ')') tokens.add(new Object[]{Token.CLOSE_PARENTHESIS,   ")"});
-
-
                 // EXPRESSION - wedoinabitofparsin
                 boolean isExpression = false;
                 try {
@@ -284,11 +260,12 @@ public class Main {
                         (tokens.get(tokens.size() - 4)[0] == Token.KEYWORD & tokens.get(tokens.size() - 3)[0]    == Token.OPEN_PARENTHESIS & tokens.get(tokens.size() - 2)[0] == Token.EXPRESSION & tokens.get(tokens.size() - 1)[0] == Token.BOOLEAN_OPERATOR)) {
                         index++;
                         StringBuilder expression = new StringBuilder();
-                        int openParenthesis  = 0;
+                        int openParenthesis = 0;
                         int closeParenthesis = 0;
                         int l = index;
                         while (l < chars.length) {
-                            if (closeParenthesis > openParenthesis | ";=<>".contains(Character.toString(chars[l]))) break;
+                            if (closeParenthesis > openParenthesis | ";=<>".contains(Character.toString(chars[l])))
+                                break;
                             if (chars[l] == '(') openParenthesis++;
                             if (chars[l] == ')') closeParenthesis++;
                             expression.append(chars[l]);
@@ -296,14 +273,31 @@ public class Main {
                         }
                         if (closeParenthesis > openParenthesis) {
                             expression = new StringBuilder(expression.substring(0, expression.length() - 1));
-                            index += expression.length()-1;
                         }
-                        else {
-                            index += expression.length()-1;
-                        }
+                        index += expression.length() - 1;
                         tokens.add(new Object[]{Token.EXPRESSION, expression});
-
                     }
+
+
+                    //CODE
+                    if (tokens.get(tokens.size() - 1)[0] == Token.OPEN_CURLY_BRACKET) {
+                        index++;
+                        StringBuilder code = new StringBuilder();
+                        int openBrackets = 0;
+                        int closeBrackets = 0;
+                        int l = index;
+                        while (l < chars.length) {
+                            if (closeBrackets > openBrackets)
+                                break;
+                            if (chars[l] == '{') openBrackets++;
+                            if (chars[l] == '}') closeBrackets++;
+                            code.append(chars[l]);
+                            l++;
+                        }
+                        index += code.length()-2;
+                        tokens.add(new Object[]{Token.CODE, code.substring(0, code.length()-1)});
+                    }
+
                 } catch (IndexOutOfBoundsException ignored) {}
 
 
@@ -328,6 +322,7 @@ public class Main {
     }
 
     public static void main(String[] args) {
-        tokenize();
+        //tokenize(content);
+        System.out.println(solveIntEquation("(10+2)*4"));
     }
 }
