@@ -70,6 +70,7 @@ public class Main {
             if (inputEquation[i] != 32) length++;
         }
 
+
         // create the new equation without spaces
         char[] equation =  new char[length];
         int index = 0;
