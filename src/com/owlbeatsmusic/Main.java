@@ -44,6 +44,7 @@ public class Main {
         CLOSE_CURLY_BRACKET,
         OPEN_PARENTHESIS,
         CLOSE_PARENTHESIS,
+        PARAMETERS,
         TYPE
     }
 
@@ -59,24 +60,25 @@ public class Main {
     }
 
     static ArrayList<Object[]> variables = new ArrayList<>(); // Object{class, name, value}
+    static ArrayList<Object[]> tokens = new ArrayList<>(); // {Token, String}
     static String content = readFile(new File("src/com/owlbeatsmusic/test")).replaceAll(System.lineSeparator(), "") + " ";
 
-    public static int solveIntEquation(String inputEquation) {
+    public static int interpretIntExpression(String inputExpression) {
 
-        char[] equation = inputEquation.strip().toCharArray();
+        char[] expression = inputExpression.strip().toCharArray();
 
         // tokenize equation
-        ArrayList<Object[]> steps = new ArrayList<>();
-        for (int i = 0; i < equation.length; i++) {
+        ArrayList<Object[]> equationTokens = new ArrayList<>();
+        for (int i = 0; i < expression.length; i++) {
 
             // IDENTIFIER
-            if (Character.isAlphabetic(equation[i])) {
-                StringBuilder variable = new StringBuilder(String.valueOf(equation[i]));
+            if (Character.isAlphabetic(expression[i])) {
+                StringBuilder variable = new StringBuilder(String.valueOf(expression[i]));
 
                 int l = 1;
-                while (i+l < equation.length) {
-                    if (" ;+-/*".contains(String.valueOf(equation[i + l]))) break;
-                    variable.append(equation[i + l]);
+                while (i+l < expression.length) {
+                    if (" ;+-/*".contains(String.valueOf(expression[i + l]))) break;
+                    variable.append(expression[i + l]);
                     l++;
                 }
                 i+=l-1;
@@ -87,29 +89,29 @@ public class Main {
                         value = (int) var[2];
                     }
                 }
-                steps.add(new Object[] {ExpressionToken.IDENTIFIER ,String.valueOf(value)});
+                equationTokens.add(new Object[] {ExpressionToken.IDENTIFIER ,String.valueOf(value)});
             }
 
             // LITERAL
-            else if (Character.isDigit(equation[i])) {
+            else if (Character.isDigit(expression[i])) {
                 StringBuilder value = new StringBuilder();
-                value.append(equation[i]);
+                value.append(expression[i]);
                 int l = 1;
                 try {
-                    while (Character.isDigit(equation[i+l])) {
-                        value.append(equation[i + l]);
+                    while (Character.isDigit(expression[i+l])) {
+                        value.append(expression[i + l]);
                         l++;
                     }
                     i += l-1;
                 } catch (ArrayIndexOutOfBoundsException ignored) {}
-                steps.add(new Object[] {ExpressionToken.LITERAL , value.toString()});
+                equationTokens.add(new Object[] {ExpressionToken.LITERAL , value.toString()});
             }
 
             // OPERATION or SEPARATOR
             else {
                 ExpressionToken token = ExpressionToken.OPERATOR;
-                if ("()".contains(Character.toString(equation[i]))) token = ExpressionToken.SEPARATOR;
-                steps.add(new Object[] {token ,String.valueOf(equation[i])});
+                if ("()".contains(Character.toString(expression[i]))) token = ExpressionToken.SEPARATOR;
+                equationTokens.add(new Object[] {token ,String.valueOf(expression[i])});
             }
         }
 
@@ -117,24 +119,24 @@ public class Main {
         // replace parenthesis with value of expression inside with recursion
         ArrayList<Object[]> nonParenthesisSteps = new ArrayList<>();
         int i1 = 0;
-        while (i1 < steps.size()) {
-            if (steps.get(i1)[1].equals("(")) {
+        while (i1 < equationTokens.size()) {
+            if (equationTokens.get(i1)[1].equals("(")) {
                 StringBuilder expressionString = new StringBuilder();
                 int expressionLength = 0;
                 int j = i1 + 1;
                 int startParenthesisCounter = 0;
-                while (j < steps.size()) {
-                    if ("(".contains(steps.get(j)[1].toString())) startParenthesisCounter++;
-                    if (")".contains(steps.get(j)[1].toString())) {
-                        expressionString.append(steps.get(j)[1]);
+                while (j < equationTokens.size()) {
+                    if ("(".contains(equationTokens.get(j)[1].toString())) startParenthesisCounter++;
+                    if (")".contains(equationTokens.get(j)[1].toString())) {
+                        expressionString.append(equationTokens.get(j)[1]);
                         if (startParenthesisCounter == 0) {
                             expressionLength = j - i1;
-                            j = steps.size();
+                            j = equationTokens.size();
                         }
                         startParenthesisCounter--;
                     }
                     else {
-                        expressionString.append(steps.get(j)[1]);
+                        expressionString.append(equationTokens.get(j)[1]);
                     }
                     j++;
                 }
@@ -144,10 +146,10 @@ public class Main {
                 for (int c = 0; c < expressionString.length(); c++) {
                     parenthesisExpression[c] = expressionString.charAt(c);
                 }
-                nonParenthesisSteps.add(new Object[]{ExpressionToken.LITERAL, solveIntEquation(String.valueOf(parenthesisExpression))});
+                nonParenthesisSteps.add(new Object[]{ExpressionToken.LITERAL, interpretIntExpression(String.valueOf(parenthesisExpression))});
             }
             else {
-                nonParenthesisSteps.add(steps.get(i1));
+                nonParenthesisSteps.add(equationTokens.get(i1));
             }
             i1++;
         }
@@ -187,7 +189,7 @@ public class Main {
         return output;
     }
     public static void tokenize(String input) {
-        ArrayList<Object[]> tokens = new ArrayList<>(); // {Token, String}
+
         for (int i = 0; i < 2; i++) { tokens.add(new Object[]{Token.NULL, null}); }
         char[] chars = input.toCharArray();
         int index = -1;
@@ -229,7 +231,7 @@ public class Main {
                 // KEYWORD
                 else if ((Character.toString(chars[index]) + chars[index + 1]).matches("if") |
                          (Character.toString(chars[index]) + chars[index + 1] + chars[index + 2]).matches("int|set") |
-                         (Character.toString(chars[index]) + chars[index + 1] + chars[index + 2] + chars[index + 3]).matches("else|func") |
+                         (Character.toString(chars[index]) + chars[index + 1] + chars[index + 2] + chars[index + 3]).matches("else") |
                          (Character.toString(chars[index]) + chars[index + 1] + chars[index + 2] + chars[index + 3] + chars[index + 4]).matches("while") |
                          (Character.toString(chars[index]) + chars[index + 1] + chars[index + 2] + chars[index + 3] + chars[index + 4] + chars[index + 5]).matches("string")) {
                     StringBuilder word = new StringBuilder();
@@ -239,7 +241,7 @@ public class Main {
                         word.append(chars[l]);
                         l++;
                     }
-                    if ("if, else, while, func".contains(word)) tokens.add(new Object[]{Token.KEYWORD, word});
+                    if ("if, else, while".contains(word)) tokens.add(new Object[]{Token.KEYWORD, word});
                     if ("int, string, set".contains(word))      tokens.add(new Object[]{Token.TYPE, word});
                     index += word.length();
                 }
@@ -275,7 +277,7 @@ public class Main {
                             expression = new StringBuilder(expression.substring(0, expression.length() - 1));
                         }
                         index += expression.length() - 1;
-                        tokens.add(new Object[]{Token.EXPRESSION, expression});
+                        tokens.add(new Object[]{Token.EXPRESSION, interpretIntExpression(String.valueOf(expression))});
                     }
 
 
@@ -310,7 +312,7 @@ public class Main {
                         identifier.append(chars[l]);
                         l++;
                     }
-                    index += identifier.length();
+                    index += identifier.length()-1;
                     tokens.add(new Object[]{Token.IDENTIFIER, identifier.toString()});
                 }
 
@@ -321,8 +323,30 @@ public class Main {
 
     }
 
+    public static void parse() {
+
+        // Allowed grammar
+        Token[] KEYWORD_BOOLEAN_CODE       = new Token[]{Token.KEYWORD, Token.OPEN_PARENTHESIS, Token.EXPRESSION, Token.BOOLEAN_OPERATOR, Token.EXPRESSION, Token.CLOSE_PARENTHESIS, Token.OPEN_CURLY_BRACKET, Token.CODE, Token.CLOSE_CURLY_BRACKET};
+        Token[] KEYWORD_EXPRESSION         = new Token[]{Token.KEYWORD, Token.EXPRESSION, Token.END_LINE};
+        Token[] IDENTIFIER_EQUALS          = new Token[]{Token.IDENTIFIER, Token.EQUALS_OPERATOR, Token.EXPRESSION, Token.END_LINE};
+        Token[] IDENTIFIER_FUNCTION        = new Token[]{Token.IDENTIFIER, Token.OPEN_PARENTHESIS, Token.PARAMETERS, Token.CLOSE_PARENTHESIS};
+        Token[] TYPE_IDENTIFIER_EXPRESSION = new Token[]{Token.TYPE, Token.IDENTIFIER, Token.OPEN_CURLY_BRACKET, Token.CODE, Token.CLOSE_CURLY_BRACKET};
+        Token[] TYPE_IDENTIFIER_CODE       = new Token[]{Token.TYPE, Token.IDENTIFIER, Token.EXPRESSION, Token.END_LINE};
+        Token[][] ALLOWED_GRAMMAR = new Token[][]{KEYWORD_BOOLEAN_CODE, KEYWORD_EXPRESSION, IDENTIFIER_EQUALS, IDENTIFIER_FUNCTION, TYPE_IDENTIFIER_EXPRESSION, TYPE_IDENTIFIER_CODE};
+
+        for (int i = 0; i < tokens.size(); i++) {
+
+        }
+
+    }
+
+    public static void interpret() {
+
+    }
+
     public static void main(String[] args) {
-        //tokenize(content);
-        System.out.println(solveIntEquation("(10+2)*4"));
+        tokenize(content);
+        interpret();
+        //System.out.println(interpretIntExpression("(10+2)*4"));
     }
 }
