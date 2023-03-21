@@ -31,6 +31,22 @@ public class Main {
         return outputString.toString();
     }
 
+    /**
+     * From :  https://www.github.com/owlbeatsmusic/olib
+     * Creates a arraylist<String> if all lines in a given file.
+     * @param inputFile File to read.
+     * @return Returns arraylist<String> of lines in file.
+     */
+    public static ArrayList<String> contentToLines(File inputFile) {
+        ArrayList<String> outputList = new ArrayList<>();
+        try {
+            outputList = (ArrayList<String>) Files.readAllLines(inputFile.toPath(), Charset.defaultCharset());
+        } catch (IOException io) {
+            io.printStackTrace();
+        }
+        return outputList;
+    }
+
     enum Token {
         NULL,
         IDENTIFIER,
@@ -67,6 +83,7 @@ public class Main {
     static ArrayList<Object[]> variables = new ArrayList<>(); // Object{class, name, value}
     static ArrayList<Object[]> tokens = new ArrayList<>(); // {Token, String}
     static String content = readFile(new File("src/com/owlbeatsmusic/test"));
+    static ArrayList<String> contentAsLines = contentToLines(new File("src/com/owlbeatsmusic/test"));
 
     public static int interpretIntExpression(String inputExpression) {
 
@@ -345,7 +362,7 @@ public class Main {
         Token[] TYPE_IDENTIFIER_CODE       = new Token[]{Token.TYPE, Token.IDENTIFIER, Token.EQUALS_OPERATOR, Token.EXPRESSION, Token.END_LINE};
         Token[][] ALLOWED_GRAMMAR = new Token[][]{KEYWORD_BOOLEAN_CODE, KEYWORD_EXPRESSION, IDENTIFIER_EQUALS, IDENTIFIER_FUNCTION, TYPE_IDENTIFIER_EXPRESSION, TYPE_IDENTIFIER_CODE};
 
-        int lineCounter = 1;
+        int lineCounter = 0;
         for (int i = 2; i < tokens.size(); i++) {
 
             boolean correct = true;
@@ -388,7 +405,10 @@ public class Main {
                 }
             }
             if (!correct) {
-                System.out.println("\u001B[31m" + "error (line " + lineCounter + "): unexpected token sequence." + "\u001B[0m");
+                System.out.println("\u001B[31m" + "error \u001B[36m: "+"\033[1;37m"+"unexpected token sequence." + "\u001B[0m");
+                System.out.println("\u001B[36m" + "      |" + "\u001B[0m");
+                System.out.println("\u001B[36m" + " ".repeat(5-String.valueOf(lineCounter).length()) + lineCounter + " | " + "\u001B[0m" + contentAsLines.get(lineCounter-1));
+                System.out.println("\u001B[36m" + "      |" + "\u001B[0m");
                 System.exit(-1);
             }
         }
