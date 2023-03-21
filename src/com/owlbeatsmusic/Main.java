@@ -36,6 +36,7 @@ public class Main {
         BOOLEAN_OPERATOR,
         EXPRESSION,
         END_LINE,
+        NEW_LINE,
         KEYWORD,
         CODE,
         OPEN_BRACKET,
@@ -61,7 +62,7 @@ public class Main {
 
     static ArrayList<Object[]> variables = new ArrayList<>(); // Object{class, name, value}
     static ArrayList<Object[]> tokens = new ArrayList<>(); // {Token, String}
-    static String content = readFile(new File("src/com/owlbeatsmusic/test")).replaceAll(System.lineSeparator(), "") + " ";
+    static String content = readFile(new File("src/com/owlbeatsmusic/test"));
 
     public static int interpretIntExpression(String inputExpression) {
 
@@ -197,8 +198,12 @@ public class Main {
             index++;
             try {
 
-                // ENDLINE
+                // END_LINE
                 if (chars[index] == ';') tokens.add(new Object[]{Token.END_LINE, ";"});
+
+
+                // NEW_LINE
+                else if (chars[index] == '\n') tokens.add(new Object[]{Token.NEW_LINE,  '\n'});
 
 
                 // BRACKETS
@@ -331,13 +336,28 @@ public class Main {
         Token[] IDENTIFIER_EQUALS          = new Token[]{Token.IDENTIFIER, Token.EQUALS_OPERATOR, Token.EXPRESSION, Token.END_LINE};
         Token[] IDENTIFIER_FUNCTION        = new Token[]{Token.IDENTIFIER, Token.OPEN_PARENTHESIS, Token.PARAMETERS, Token.CLOSE_PARENTHESIS};
         Token[] TYPE_IDENTIFIER_EXPRESSION = new Token[]{Token.TYPE, Token.IDENTIFIER, Token.OPEN_CURLY_BRACKET, Token.CODE, Token.CLOSE_CURLY_BRACKET};
-        Token[] TYPE_IDENTIFIER_CODE       = new Token[]{Token.TYPE, Token.IDENTIFIER, Token.EXPRESSION, Token.END_LINE};
+        Token[] TYPE_IDENTIFIER_CODE       = new Token[]{Token.TYPE, Token.IDENTIFIER, Token.EQUALS_OPERATOR, Token.EXPRESSION, Token.END_LINE};
         Token[][] ALLOWED_GRAMMAR = new Token[][]{KEYWORD_BOOLEAN_CODE, KEYWORD_EXPRESSION, IDENTIFIER_EQUALS, IDENTIFIER_FUNCTION, TYPE_IDENTIFIER_EXPRESSION, TYPE_IDENTIFIER_CODE};
 
+        int lineCounter = 1;
         for (int i = 0; i < tokens.size(); i++) {
+            for (Token[] allowedToken : ALLOWED_GRAMMAR) {
+                lineCounter = 0;
+                try {
+                    for (int t = 0; t < allowedToken.length; t++) {
+                        if (tokens.get(i + t)[0] == Token.NEW_LINE) {
+                            lineCounter++;
+                        }
+                        else if (tokens.get(i + t)[0] == allowedToken[t]) {
+                            System.out.println("yes : " + tokens.get(i + t)[0] + ", " + (i+t));
+                        } else {
+                            System.out.println("no  : " + tokens.get(i + t)[0]);
+                        }
+                    }
+                } catch (IndexOutOfBoundsException ignored) {}
+            }
 
         }
-
     }
 
     public static void interpret() {
@@ -346,6 +366,7 @@ public class Main {
 
     public static void main(String[] args) {
         tokenize(content);
+        parse();
         interpret();
         //System.out.println(interpretIntExpression("(10+2)*4"));
     }
