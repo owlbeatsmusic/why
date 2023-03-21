@@ -1,5 +1,7 @@
 package com.owlbeatsmusic;
 
+import javax.management.MBeanRegistration;
+import javax.management.MBeanRegistrationException;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -46,7 +48,9 @@ public class Main {
         OPEN_PARENTHESIS,
         CLOSE_PARENTHESIS,
         PARAMETERS,
-        TYPE
+        TYPE,
+
+        END_FILE
     }
 
     enum ExpressionToken {
@@ -192,6 +196,7 @@ public class Main {
     public static void tokenize(String input) {
 
         for (int i = 0; i < 2; i++) { tokens.add(new Object[]{Token.NULL, null}); }
+        tokens.add(new Object[]{Token.NEW_LINE, ""});
         char[] chars = input.toCharArray();
         int index = -1;
         while (index < chars.length) {
@@ -323,6 +328,7 @@ public class Main {
 
             } catch (ArrayIndexOutOfBoundsException ignored) {}
         }
+        tokens.add(new Object[]{Token.END_FILE, ""});
 
         System.out.println(Arrays.deepToString(tokens.toArray()));
 
@@ -340,23 +346,51 @@ public class Main {
         Token[][] ALLOWED_GRAMMAR = new Token[][]{KEYWORD_BOOLEAN_CODE, KEYWORD_EXPRESSION, IDENTIFIER_EQUALS, IDENTIFIER_FUNCTION, TYPE_IDENTIFIER_EXPRESSION, TYPE_IDENTIFIER_CODE};
 
         int lineCounter = 1;
-        for (int i = 0; i < tokens.size(); i++) {
+        for (int i = 2; i < tokens.size(); i++) {
+
+            boolean correct = true;
+            boolean lineComplete = false;
+
             for (Token[] allowedToken : ALLOWED_GRAMMAR) {
-                lineCounter = 0;
+                if (lineComplete) break;
+
                 try {
+
                     for (int t = 0; t < allowedToken.length; t++) {
-                        if (tokens.get(i + t)[0] == Token.NEW_LINE) {
+                        if (tokens.get(i + t)[0] == Token.END_FILE) {
+                            correct = true;
+                            lineComplete = true;
+
+                            break;
+                        }
+                        else if (tokens.get(i + t)[0] == Token.NEW_LINE) {
                             lineCounter++;
+                            i++;
                         }
                         else if (tokens.get(i + t)[0] == allowedToken[t]) {
-                            System.out.println("yes : " + tokens.get(i + t)[0] + ", " + (i+t));
-                        } else {
-                            System.out.println("no  : " + tokens.get(i + t)[0]);
+                            //System.out.println("yes : " + tokens.get(i + t)[1] + " ".repeat(20-tokens.get(i + t)[0].toString().length()) + Arrays.toString(allowedToken));
+                            correct = true;
+                        }
+                        else {
+                            correct = false;
+                            //System.out.println("no  : " + tokens.get(i + t)[1] + " ".repeat(20-tokens.get(i + t)[0].toString().length()) + Arrays.toString(allowedToken));
+                            break;
                         }
                     }
-                } catch (IndexOutOfBoundsException ignored) {}
-            }
 
+                    if (correct) {
+                        System.out.println("grammar : " + Arrays.toString(allowedToken));
+                        i += allowedToken.length;
+                    }
+                } catch (IndexOutOfBoundsException e) {
+                    correct = false;
+                    break;
+                }
+            }
+            if (!correct) {
+                System.out.println("\u001B[31m" + "error (line " + lineCounter + "): unexpected token sequence." + "\u001B[0m");
+                System.exit(-1);
+            }
         }
     }
 
